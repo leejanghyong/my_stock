@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>실시간 금융 대시보드 (실제 거래일 기준 등락률)</title>
+    <title>실시간 금융 대시보드 (SKHY 반영 & 30일 기본)</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -12,11 +12,13 @@
     <div class="w-full max-w-md bg-white min-h-screen shadow-lg flex flex-col justify-between p-4">
         
         <div>
+            <!-- 상단 헤더 -->
             <header class="flex justify-between items-center mb-5">
                 <h1 class="text-xl font-bold text-gray-800">📊 실시간 금융 대시보드</h1>
                 <span id="network-status" class="text-xs text-emerald-600 bg-emerald-50 font-semibold px-2 py-1 rounded">시스템 가동</span>
             </header>
 
+            <!-- 💵 원/달러 환율 영역 -->
             <div id="card-USD" onclick="changeChart('USD')" class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex flex-col mb-5 cursor-pointer hover:bg-blue-100 hover:scale-[1.02] transition-all duration-200">
                 <div class="flex justify-between items-center">
                     <span class="font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
@@ -25,24 +27,29 @@
                 <div id="time-USD" class="text-[10px] text-blue-400 text-right mt-1">데이터 대기 중...</div>
             </div>
 
+            <!-- 📈 주식 시세 리스트 -->
             <div class="space-y-3 mb-6" id="stock-list">
-                </div>
+                <!-- 초기에 빈 틀 구성 -->
+            </div>
 
+            <!-- 📉 통합 추이 그래프 영역 -->
             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-sm font-bold text-gray-700">
                         📈 <span id="chart-title">QQQ</span> 추이
                     </h3>
+                    <!-- 🛠️ 기본 선택값을 30일로 설정 -->
                     <select id="period-select" onchange="changePeriod(this.value)" class="text-xs bg-gray-50 border border-gray-300 rounded px-2 py-1 font-semibold text-gray-600 focus:outline-none">
-                        <option value="7d" selected>7거래일</option>
+                        <option value="7d">7거래일</option>
                         <option value="14d">14거래일</option>
-                        <option value="30d">30거래일</option>
+                        <option value="30d" selected>30거래일</option>
                     </select>
                 </div>
                 <canvas id="trendChart" class="w-full h-40"></canvas>
             </div>
         </div>
 
+        <!-- 하단 정보 -->
         <footer class="mt-6 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
             <p>💡 주말·휴장일에도 0%가 아닌 '직전 실제 거래일' 기준 등락률이 표기됩니다.</p>
             <p class="mt-1">화면 갱신 시각: <span id="update-time">-</span></p>
@@ -51,7 +58,9 @@
     </div>
 
     <script>
+        // 💡 미국 나스닥 상장 SK하이닉스 티커(SKHY) 추가
         const tickers = {
+            'SKHY': 'SK하이닉스 (US)',
             'QLD': '나스닥 100 X2',
             'TQQQ': '나스닥 100 X3',
             'SOXL': '반도체 X3',
@@ -62,7 +71,7 @@
         let trendChart = null;
         let globalChartData = {}; 
         let selectedTicker = 'QQQ'; 
-        let selectedRange = '7d'; 
+        let selectedRange = '30d'; // 💡 기본 조회 기간을 30일(30d)로 설정
 
         function initRender() {
             let initialHTML = '';
@@ -105,7 +114,7 @@
             return `(${month}/${day} ${hours}:${minutes})`;
         }
 
-        async function fetchFinancialData(range = '7d') {
+        async function fetchFinancialData(range = '30d') {
             const now = new Date();
             document.getElementById('update-time').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
 
@@ -118,12 +127,10 @@
                 const usdIndicators = usdData.chart.result[0].indicators.quote[0];
                 const usdTimestamps = usdData.chart.result[0].timestamp;
 
-                // 환율 데이터 중 유효한 종가만 필터링
                 const validUsdCloses = usdIndicators.close.filter(v => v !== null);
                 let currentUsd = usdMeta.regularMarketPrice || usdMeta.previousClose;
                 let usdChangeRate = 0;
 
-                // 환율도 실제 유효한 데이터가 2개 이상일 때 직전일 대비 등락률 계산
                 if (validUsdCloses.length >= 2) {
                     currentUsd = validUsdCloses[validUsdCloses.length - 1];
                     const prevUsd = validUsdCloses[validUsdCloses.length - 2];
@@ -172,18 +179,14 @@
                     const indicators = stockData.chart.result[0].indicators.quote[0];
                     const timestamps = stockData.chart.result[0].timestamp;
 
-                    // 💡 핵심 수정: Null(빈값)을 제외한 실제 주식 시장이 열렸던 날들의 종가들만 추출
                     const validCloses = indicators.close.filter(v => v !== null);
                     
                     let currentPrice = meta.regularMarketPrice || meta.previousClose;
                     let changeRate = 0;
 
                     if (validCloses.length >= 2) {
-                        // 가장 최신 거래일 종가
                         currentPrice = validCloses[validCloses.length - 1];
-                        // 그 직전 거래일 종가
                         const lastValidPrevPrice = validCloses[validCloses.length - 2];
-                        // 실제 운영된 날 기준 등락률 계산
                         changeRate = ((currentPrice - lastValidPrevPrice) / lastValidPrevPrice) * 100;
                     } else {
                         const prevPrice = meta.previousClose || 0;
@@ -199,7 +202,7 @@
                     const colorClass = isUp ? 'text-red-500' : 'text-blue-500';
                     const sign = isUp ? '▲' : '▼';
 
-                    // UI 매핑
+                    // SKHY 포함 미국 종목 달러 표시 연동
                     document.getElementById(`price-${ticker}`).innerText = `$${currentPrice.toFixed(2)}`;
                     document.getElementById(`change-${ticker}`).innerText = `${sign} ${Math.abs(changeRate).toFixed(2)}%`;
                     document.getElementById(`change-${ticker}`).className = `text-xs font-bold ${colorClass} mt-0.5`;
@@ -208,7 +211,7 @@
                     const stockTimeStr = formatMarketTime(meta.regularMarketTime);
                     document.getElementById(`time-${ticker}`).innerText = stockTimeStr;
 
-                    // 차트 전용 배열 생성
+                    // 차트 전용 데이터 생성
                     let labels = [];
                     let prices = [];
                     if (timestamps) {
@@ -230,7 +233,7 @@
                 }
             }
 
-            // 차트 재생성
+            // 차트 최신화
             if (globalChartData[selectedTicker]) {
                 updateChart(globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
             }
@@ -238,7 +241,10 @@
 
         function changeChart(ticker) {
             selectedTicker = ticker; 
-            const titleTarget = ticker === 'USD' ? '원/달러 환율(KRW)' : ticker;
+            let titleTarget = ticker;
+            if (ticker === 'USD') titleTarget = '원/달러 환율(KRW)';
+            if (ticker === 'SKHY') titleTarget = 'SK하이닉스 (US)';
+            
             document.getElementById('chart-title').innerText = titleTarget; 
             
             if (globalChartData[ticker]) {
@@ -262,7 +268,9 @@
             }
 
             const isCurrency = globalChartData[selectedTicker]?.isCurrency;
-            const labelText = isCurrency ? "환율 (원)" : `${selectedTicker} 종가 ($)`;
+            let labelText = `${selectedTicker} 종가 ($)`;
+            if (isCurrency) labelText = "환율 (원)";
+
             const lineColor = isCurrency ? '#3b82f6' : '#10b981'; 
             const fillColor = isCurrency ? 'rgba(59, 130, 246, 0.05)' : 'rgba(16, 185, 129, 0.05)';
 
@@ -276,7 +284,7 @@
                         borderColor: lineColor,
                         backgroundColor: fillColor,
                         borderWidth: 2,
-                        tension: 0.1,
+                        tension: 0.08, // 30일선 흐름을 부드럽게 표현
                         fill: true
                     }]
                 },
@@ -289,6 +297,7 @@
         }
 
         initRender();
+        // 30일 기본 세팅값으로 최초 조회 작동
         fetchFinancialData(selectedRange);
         setInterval(() => { fetchFinancialData(selectedRange); }, 60000);
     </script>
