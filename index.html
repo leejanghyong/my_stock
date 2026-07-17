@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>실시간 금융 대시보드 (풀 와이드 그래프)</title>
+    <title>실시간 금융 대시보드 (아코디언 차트형)</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -19,46 +19,46 @@
             </header>
 
             <!-- 💵 원/달러 환율 영역 -->
-            <div id="card-USD" onclick="changeChart('USD')" class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 flex flex-col mb-3 cursor-pointer hover:bg-blue-100 hover:scale-[1.01] transition-all duration-200">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
-                    <span id="usd-krw" class="text-base font-bold text-blue-900">0.00 원</span>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl mb-3 overflow-hidden shadow-sm">
+                <!-- 환율 상단 정보 영역 (클릭 시 하단 차트 토글) -->
+                <div onclick="toggleChart('USD')" class="p-2.5 flex flex-col cursor-pointer hover:bg-blue-100/50 active:scale-[0.99] transition-all duration-150">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
+                        <span id="usd-krw" class="text-base font-bold text-blue-900">0.00 원</span>
+                    </div>
+                    <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 대기 중...</div>
                 </div>
-                <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 대기 중...</div>
+                
+                <!-- 📉 환율 차트 삽입부 -->
+                <div id="chart-area-USD" class="hidden bg-white border-t border-blue-200 p-3">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-blue-800">📈 원/달러 환율 추이</span>
+                        <select onchange="changePeriod(this.value)" class="period-select text-[10px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600">
+                            <option value="7d">7일</option>
+                            <option value="14d">14일</option>
+                            <option value="30d" selected>30일</option>
+                            <option value="60d">60일</option>
+                            <option value="90d">90일</option>
+                            <option value="1y">1년</option>
+                            <option value="3y">3년</option>
+                            <option value="5y">5년</option>
+                        </select>
+                    </div>
+                    <div class="relative w-full h-36">
+                        <canvas id="chart-canvas-USD" class="w-full h-full"></canvas>
+                    </div>
+                </div>
             </div>
 
-            <!-- 📈 주식 시세 리스트 -->
+            <!-- 📈 주식 시세 리스트 (각 주식 카드 하단에 개별 차트 영역이 포함됩니다) -->
             <div class="space-y-2 mb-4" id="stock-list">
                 <!-- 초기에 빈 틀 구성 -->
-            </div>
-
-            <!-- 📉 통합 추이 그래프 영역 (좌우 꽉 차게 감싸는 wrap 구조로 변경) -->
-            <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm w-full">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xs font-bold text-gray-700">
-                        📈 <span id="chart-title">QQQ</span> 추이
-                    </h3>
-                    <select id="period-select" onchange="changePeriod(this.value)" class="text-[11px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600 focus:outline-none">
-                        <option value="7d">7일</option>
-                        <option value="14d">14일</option>
-                        <option value="30d" selected>30일</option>
-                        <option value="60d">60일</option>
-                        <option value="90d">90일</option>
-                        <option value="1y">1년</option>
-                        <option value="3y">3년</option>
-                        <option value="5y">5년</option>
-                    </select>
-                </div>
-                <!-- 💡 그래프가 반만 나오는 문제를 해결하기 위해 크기를 고정 강제하는 div 추가 -->
-                <div class="relative w-full h-40">
-                    <canvas id="trendChart" class="w-full h-full"></canvas>
-                </div>
             </div>
         </div>
 
         <!-- 하단 정보 -->
         <footer class="mt-4 pt-3 border-t border-gray-100 text-center text-[11px] text-gray-400">
-            <p>💡 기간 메뉴에서 최대 5년 장기 추이까지 확인 가능합니다.</p>
+            <p>💡 주식 및 환율 카드를 누르면 아래로 그래프가 펼쳐집니다.</p>
             <p class="mt-0.5">화면 갱신 시각: <span id="update-time">-</span></p>
         </footer>
 
@@ -74,24 +74,48 @@
             'SPY': 'S&P 500 지수'
         };
 
-        let trendChart = null;
+        let trendChart = null; // 활성화된 단 하나의 Chart 객체 저장용
         let globalChartData = {}; 
-        let selectedTicker = 'QQQ'; 
-        let selectedRange = '30d'; 
+        let selectedTicker = 'QQQ'; // 기본적으로 켜질 종목
+        let selectedRange = '30d'; // 기본 조회 기간 30일
 
+        // 각 종목 하단에 그래프 뼈대를 미리 심어 두고 렌더링하는 함수
         function initRender() {
             let initialHTML = '';
             for (const [ticker, name] of Object.entries(tickers)) {
                 initialHTML += `
-                    <div id="card-${ticker}" onclick="changeChart('${ticker}')" class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 flex justify-between items-center cursor-pointer hover:bg-gray-100 hover:scale-[1.01] transition-all duration-200">
-                        <div class="flex-1">
-                            <div class="text-sm font-bold text-gray-800">${ticker} <span class="text-[10px] font-normal text-gray-400">| ${name}</span></div>
-                            <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 동기화 대기 중...</div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                        <!-- 클릭 영역 -->
+                        <div onclick="toggleChart('${ticker}')" class="p-2.5 flex justify-between items-center cursor-pointer hover:bg-gray-100 active:scale-[0.99] transition-all duration-150">
+                            <div class="flex-1 w-full">
+                                <div class="text-sm font-bold text-gray-800">${ticker} <span class="text-[10px] font-normal text-gray-400">| ${name}</span></div>
+                                <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 동기화 대기 중...</div>
+                            </div>
+                            <div class="text-right">
+                                <div id="price-${ticker}" class="text-base font-extrabold text-gray-600">$0.00</div>
+                                <div id="change-${ticker}" class="text-[11px] font-bold text-gray-400 mt-0.5">- %</div>
+                                <div id="time-${ticker}" class="text-[9px] text-gray-400 mt-0.5">-</div>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <div id="price-${ticker}" class="text-base font-extrabold text-gray-600">$0.00</div>
-                            <div id="change-${ticker}" class="text-[11px] font-bold text-gray-400 mt-0.5">- %</div>
-                            <div id="time-${ticker}" class="text-[9px] text-gray-400 mt-0.5">-</div>
+                        
+                        <!-- 📉 숨겨진 개별 차트 영역 -->
+                        <div id="chart-area-${ticker}" class="hidden bg-white border-t border-gray-200 p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-gray-700">📈 ${ticker} 추이</span>
+                                <select onchange="changePeriod(this.value)" class="period-select text-[10px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600">
+                                    <option value="7d">7일</option>
+                                    <option value="14d">14일</option>
+                                    <option value="30d" selected>30일</option>
+                                    <option value="60d">60일</option>
+                                    <option value="90d">90일</option>
+                                    <option value="1y">1년</option>
+                                    <option value="3y">3년</option>
+                                    <option value="5y">5년</option>
+                                </select>
+                            </div>
+                            <div class="relative w-full h-36">
+                                <canvas id="chart-canvas-${ticker}" class="w-full h-full"></canvas>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -246,41 +270,53 @@
                 }
             }
 
+            // 첫 갱신 시 혹은 데이터 업데이트 시 현재 활성화되어 있는 차트를 다시 그려줍니다.
             if (globalChartData[selectedTicker]) {
-                updateChart(globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
+                const area = document.getElementById(`chart-area-${selectedTicker}`);
+                if (area && !area.classList.contains('hidden')) {
+                    drawChart(selectedTicker, globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
+                }
             }
         }
 
-        function changeChart(ticker) {
-            selectedTicker = ticker; 
-            let titleTarget = ticker;
-            if (ticker === 'USD') titleTarget = '원/달러 환율(KRW)';
-            if (ticker === 'SKHY') titleTarget = 'SK하이닉스 (US)';
+        // 💡 핵심 기능: 클릭한 종목 바로 아래의 차트 영역을 열고 닫는 함수
+        function toggleChart(ticker) {
+            const allTickers = ['USD', ...Object.keys(tickers)];
             
-            document.getElementById('chart-title').innerText = titleTarget; 
-            
-            if (globalChartData[ticker]) {
-                updateChart(globalChartData[ticker].labels, globalChartData[ticker].prices);
-            }
+            allTickers.forEach(t => {
+                const area = document.getElementById(`chart-area-${t}`);
+                if (t === ticker) {
+                    // 현재 선택한 종목의 토글 처리
+                    if (area.classList.contains('hidden')) {
+                        area.classList.remove('hidden');
+                        selectedTicker = ticker;
+                        // 열린 종목에 맞춰 셀렉트 박스의 값도 싱크를 맞춰줍니다.
+                        const selectEl = area.querySelector('.period-select');
+                        if (selectEl) selectEl.value = selectedRange;
+                        
+                        // 차트 렌더링
+                        if (globalChartData[ticker]) {
+                            drawChart(ticker, globalChartData[ticker].labels, globalChartData[ticker].prices);
+                        }
+                    } else {
+                        area.classList.add('hidden');
+                    }
+                } else {
+                    // 선택하지 않은 다른 모든 차트 영역은 깔끔하게 닫기
+                    area.classList.add('hidden');
+                }
+            });
         }
 
-        async function changePeriod(range) {
-            selectedRange = range; 
-            document.getElementById('network-status').innerText = "기간 갱신 중";
-            document.getElementById('network-status').className = "text-[11px] text-amber-600 bg-amber-50 font-semibold px-2 py-0.5 rounded";
-            await fetchFinancialData(selectedRange);
-            document.getElementById('network-status').innerText = "시스템 가동";
-            document.getElementById('network-status').className = "text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded";
-        }
-
-        function updateChart(labels, data) {
-            const ctx = document.getElementById('trendChart').getContext('2d');
+        // 💡 핵심 기능: 새로 바뀐 종목의 개별 캔버스에 맞춤형 라인 차트를 그리는 함수
+        function drawChart(ticker, labels, data) {
+            const ctx = document.getElementById(`chart-canvas-${ticker}`).getContext('2d');
             if (trendChart) {
                 trendChart.destroy();
             }
 
-            const isCurrency = globalChartData[selectedTicker]?.isCurrency;
-            let labelText = `${selectedTicker} 종가 ($)`;
+            const isCurrency = globalChartData[ticker]?.isCurrency;
+            let labelText = `${ticker} 종가 ($)`;
             if (isCurrency) labelText = "환율 (원)";
 
             const lineColor = isCurrency ? '#3b82f6' : '#10b981'; 
@@ -304,7 +340,7 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false, // 💡 화면 비율 고정을 풀어 박스 크기(w-full)에 무조건 맞추도록 수정!
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { 
                         y: { beginAtZero: false },
@@ -318,8 +354,22 @@
             });
         }
 
+        async function changePeriod(range) {
+            selectedRange = range; 
+            document.getElementById('network-status').innerText = "기간 갱신 중";
+            document.getElementById('network-status').className = "text-[11px] text-amber-600 bg-amber-50 font-semibold px-2 py-0.5 rounded";
+            await fetchFinancialData(selectedRange);
+            document.getElementById('network-status').innerText = "시스템 가동";
+            document.getElementById('network-status').className = "text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded";
+        }
+
         initRender();
-        fetchFinancialData(selectedRange);
+        // 초기 로드 시 30일 값으로 불러옵니다.
+        fetchFinancialData(selectedRange).then(() => {
+            // 기본 선택된 QQQ의 차트를 맨 처음에 열어두어 생동감을 유지합니다.
+            toggleChart('QQQ');
+        });
+
         setInterval(() => { fetchFinancialData(selectedRange); }, 60000);
     </script>
 </body>
