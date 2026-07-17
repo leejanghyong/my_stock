@@ -3,46 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>실시간 금융 대시보드 (SKHY 반영 & 30일 기본)</title>
+    <title>실시간 금융 대시보드 (기간 확장 & 콤팩트 버전)</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex justify-center">
 
-    <div class="w-full max-w-md bg-white min-h-screen shadow-lg flex flex-col justify-between p-4">
+    <div class="w-full max-w-md bg-white min-h-screen shadow-lg flex flex-col justify-between p-3">
         
         <div>
             <!-- 상단 헤더 -->
-            <header class="flex justify-between items-center mb-5">
-                <h1 class="text-xl font-bold text-gray-800">📊 실시간 금융 대시보드</h1>
-                <span id="network-status" class="text-xs text-emerald-600 bg-emerald-50 font-semibold px-2 py-1 rounded">시스템 가동</span>
+            <header class="flex justify-between items-center mb-3">
+                <h1 class="text-lg font-bold text-gray-800">📊 실시간 금융 대시보드</h1>
+                <span id="network-status" class="text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded">시스템 가동</span>
             </header>
 
-            <!-- 💵 원/달러 환율 영역 -->
-            <div id="card-USD" onclick="changeChart('USD')" class="bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex flex-col mb-5 cursor-pointer hover:bg-blue-100 hover:scale-[1.02] transition-all duration-200">
+            <!-- 💵 원/달러 환율 영역 (박스 슬림화) -->
+            <div id="card-USD" onclick="changeChart('USD')" class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 flex flex-col mb-3 cursor-pointer hover:bg-blue-100 hover:scale-[1.01] transition-all duration-200">
                 <div class="flex justify-between items-center">
-                    <span class="font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
-                    <span id="usd-krw" class="text-lg font-bold text-blue-900">0.00 원</span>
+                    <span class="text-sm font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
+                    <span id="usd-krw" class="text-base font-bold text-blue-900">0.00 원</span>
                 </div>
-                <div id="time-USD" class="text-[10px] text-blue-400 text-right mt-1">데이터 대기 중...</div>
+                <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 대기 중...</div>
             </div>
 
-            <!-- 📈 주식 시세 리스트 -->
-            <div class="space-y-3 mb-6" id="stock-list">
+            <!-- 📈 주식 시세 리스트 (간격 긴밀하게 축소) -->
+            <div class="space-y-2 mb-4" id="stock-list">
                 <!-- 초기에 빈 틀 구성 -->
             </div>
 
             <!-- 📉 통합 추이 그래프 영역 -->
-            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-sm font-bold text-gray-700">
+            <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-gray-700">
                         📈 <span id="chart-title">QQQ</span> 추이
                     </h3>
-                    <!-- 🛠️ 기본 선택값을 30일로 설정 -->
-                    <select id="period-select" onchange="changePeriod(this.value)" class="text-xs bg-gray-50 border border-gray-300 rounded px-2 py-1 font-semibold text-gray-600 focus:outline-none">
-                        <option value="7d">7거래일</option>
-                        <option value="14d">14거래일</option>
-                        <option value="30d" selected>30거래일</option>
+                    <!-- 🛠️ 요청하신 기간 옵션 전면 배치 (기본값 30일) -->
+                    <select id="period-select" onchange="changePeriod(this.value)" class="text-[11px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600 focus:outline-none">
+                        <option value="7d">7일</option>
+                        <option value="14d">14일</option>
+                        <option value="30d" selected>30일</option>
+                        <option value="60d">60일</option>
+                        <option value="90d">90일</option>
+                        <option value="1y">1년</option>
+                        <option value="3y">3년</option>
+                        <option value="5y">5년</option>
                     </select>
                 </div>
                 <canvas id="trendChart" class="w-full h-40"></canvas>
@@ -50,15 +55,14 @@
         </div>
 
         <!-- 하단 정보 -->
-        <footer class="mt-6 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
-            <p>💡 주말·휴장일에도 0%가 아닌 '직전 실제 거래일' 기준 등락률이 표기됩니다.</p>
-            <p class="mt-1">화면 갱신 시각: <span id="update-time">-</span></p>
+        <footer class="mt-4 pt-3 border-t border-gray-100 text-center text-[11px] text-gray-400">
+            <p>💡 기간 메뉴에서 최대 5년 장기 추이까지 확인 가능합니다.</p>
+            <p class="mt-0.5">화면 갱신 시각: <span id="update-time">-</span></p>
         </footer>
 
     </div>
 
     <script>
-        // 💡 미국 나스닥 상장 SK하이닉스 티커(SKHY) 추가
         const tickers = {
             'SKHY': 'SK하이닉스 (US)',
             'QLD': '나스닥 100 X2',
@@ -71,21 +75,22 @@
         let trendChart = null;
         let globalChartData = {}; 
         let selectedTicker = 'QQQ'; 
-        let selectedRange = '30d'; // 💡 기본 조회 기간을 30일(30d)로 설정
+        let selectedRange = '30d'; // 💡 기본 거래일 30일 설정 유지
 
+        // 각 종목 박스(카드) 크기를 컴팩트하게 축소하는 렌더링 함수
         function initRender() {
             let initialHTML = '';
             for (const [ticker, name] of Object.entries(tickers)) {
                 initialHTML += `
-                    <div id="card-${ticker}" onclick="changeChart('${ticker}')" class="bg-gray-50 border border-gray-200 rounded-xl p-4 shadow-sm flex justify-between items-center cursor-pointer hover:bg-gray-100 hover:scale-[1.02] transition-all duration-200">
+                    <div id="card-${ticker}" onclick="changeChart('${ticker}')" class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 flex justify-between items-center cursor-pointer hover:bg-gray-100 hover:scale-[1.01] transition-all duration-200">
                         <div class="flex-1">
-                            <div class="text-base font-bold text-gray-800">${ticker} <span class="text-xs font-normal text-gray-400">| ${name}</span></div>
-                            <div id="range-${ticker}" class="text-[11px] text-gray-400 mt-1">데이터 동기화 대기 중...</div>
+                            <div class="text-sm font-bold text-gray-800">${ticker} <span class="text-[10px] font-normal text-gray-400">| ${name}</span></div>
+                            <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 동기화 대기 중...</div>
                         </div>
                         <div class="text-right">
-                            <div id="price-${ticker}" class="text-lg font-extrabold text-gray-600">$0.00</div>
-                            <div id="change-${ticker}" class="text-xs font-bold text-gray-400 mt-0.5">- %</div>
-                            <div id="time-${ticker}" class="text-[10px] text-gray-400 mt-1">-</div>
+                            <div id="price-${ticker}" class="text-base font-extrabold text-gray-600">$0.00</div>
+                            <div id="change-${ticker}" class="text-[11px] font-bold text-gray-400 mt-0.5">- %</div>
+                            <div id="time-${ticker}" class="text-[9px] text-gray-400 mt-0.5">-</div>
                         </div>
                     </div>
                 `;
@@ -118,9 +123,13 @@
             const now = new Date();
             document.getElementById('update-time').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
 
+            // 장기 데이터 조회 시 차트 가독성을 위해 인터벌 자동 조절 (1년 이상은 주 단위/월 단위 데이터로 최적화)
+            let interval = '1d';
+            if (range === '3y' || range === '5y') interval = '1wk';
+
             // 1. 환율 정보 가져오기
             try {
-                const usdTargetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=1d&range=${range}`;
+                const usdTargetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=${interval}&range=${range}`;
                 const usdData = await fetchWithProxy(usdTargetUrl);
                 
                 const usdMeta = usdData.chart.result[0].meta;
@@ -142,8 +151,8 @@
                 const usdSign = usdIsUp ? '▲' : '▼';
 
                 document.getElementById('usd-krw').innerHTML = `
-                    <span class="text-lg font-bold text-blue-900">${currentUsd.toFixed(2)} 원</span>
-                    <span class="text-xs font-bold ${usdColor} ml-2">${usdSign} ${Math.abs(usdChangeRate).toFixed(2)}%</span>
+                    <span class="text-base font-bold text-blue-900">${currentUsd.toFixed(2)} 원</span>
+                    <span class="text-[11px] font-bold ${usdColor} ml-2">${usdSign} ${Math.abs(usdChangeRate).toFixed(2)}%</span>
                 `;
                 
                 const usdTimeStr = formatMarketTime(usdMeta.regularMarketTime);
@@ -154,7 +163,11 @@
                 if (usdTimestamps) {
                     usdTimestamps.forEach((ts, idx) => {
                         const date = new Date(ts * 1000);
-                        const label = `${date.getMonth()+1}/${date.getDate()}`;
+                        // 기간이 1년 이상 길어지면 날짜 라벨 포맷 변경 (연도/월 표시)
+                        const label = (range === '3y' || range === '5y' || range === '1y') 
+                            ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
+                            : `${date.getMonth()+1}/${date.getDate()}`;
+                            
                         if (idx === 0 || usdLabels[usdLabels.length - 1] !== label) {
                             if (usdIndicators.close[idx] !== null) {
                                 usdLabels.push(label);
@@ -166,13 +179,13 @@
                 globalChartData['USD'] = { labels: usdLabels, prices: usdPrices, isCurrency: true };
 
             } catch (e) {
-                console.error("환율 수집 실패:", e);
+                console.error("환율 데이터 수집 실패:", e);
             }
 
             // 2. 주식 정보 가져오기
             for (const [ticker, name] of Object.entries(tickers)) {
                 try {
-                    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=${range}`;
+                    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
                     const stockData = await fetchWithProxy(targetUrl);
                     
                     const meta = stockData.chart.result[0].meta;
@@ -202,22 +215,25 @@
                     const colorClass = isUp ? 'text-red-500' : 'text-blue-500';
                     const sign = isUp ? '▲' : '▼';
 
-                    // SKHY 포함 미국 종목 달러 표시 연동
+                    // 컴팩트 UI 텍스트 출력 적용
                     document.getElementById(`price-${ticker}`).innerText = `$${currentPrice.toFixed(2)}`;
                     document.getElementById(`change-${ticker}`).innerText = `${sign} ${Math.abs(changeRate).toFixed(2)}%`;
-                    document.getElementById(`change-${ticker}`).className = `text-xs font-bold ${colorClass} mt-0.5`;
-                    document.getElementById(`range-${ticker}`).innerText = `최근 고: $${highPrice.toFixed(2)} / 저: $${lowPrice.toFixed(2)}`;
+                    document.getElementById(`change-${ticker}`).className = `text-[11px] font-bold ${colorClass} mt-0.5`;
+                    document.getElementById(`range-${ticker}`).innerText = `고: $${highPrice.toFixed(2)} / 저: $${lowPrice.toFixed(2)}`;
                     
                     const stockTimeStr = formatMarketTime(meta.regularMarketTime);
                     document.getElementById(`time-${ticker}`).innerText = stockTimeStr;
 
-                    // 차트 전용 데이터 생성
+                    // 차트 라벨 생성
                     let labels = [];
                     let prices = [];
                     if (timestamps) {
                         timestamps.forEach((ts, idx) => {
                             const date = new Date(ts * 1000);
-                            const label = `${date.getMonth()+1}/${date.getDate()}`;
+                            const label = (range === '3y' || range === '5y' || range === '1y') 
+                                ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
+                                : `${date.getMonth()+1}/${date.getDate()}`;
+
                             if (idx === 0 || labels[labels.length - 1] !== label) {
                                 if (indicators.close[idx] !== null) {
                                     labels.push(label);
@@ -233,7 +249,7 @@
                 }
             }
 
-            // 차트 최신화
+            // 차트 재생성
             if (globalChartData[selectedTicker]) {
                 updateChart(globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
             }
@@ -255,10 +271,10 @@
         async function changePeriod(range) {
             selectedRange = range; 
             document.getElementById('network-status').innerText = "기간 갱신 중";
-            document.getElementById('network-status').className = "text-xs text-amber-600 bg-amber-50 font-semibold px-2 py-1 rounded";
+            document.getElementById('network-status').className = "text-[11px] text-amber-600 bg-amber-50 font-semibold px-2 py-0.5 rounded";
             await fetchFinancialData(selectedRange);
             document.getElementById('network-status').innerText = "시스템 가동";
-            document.getElementById('network-status').className = "text-xs text-emerald-600 bg-emerald-50 font-semibold px-2 py-1 rounded";
+            document.getElementById('network-status').className = "text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded";
         }
 
         function updateChart(labels, data) {
@@ -274,6 +290,9 @@
             const lineColor = isCurrency ? '#3b82f6' : '#10b981'; 
             const fillColor = isCurrency ? 'rgba(59, 130, 246, 0.05)' : 'rgba(16, 185, 129, 0.05)';
 
+            // 데이터 양에 따라 점(Point)의 크기를 제어하여 장기 데이터 표기 시 차트가 지저분해지지 않도록 보완
+            const pointRadius = (selectedRange === '3y' || selectedRange === '5y') ? 0 : 1.5;
+
             trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -284,20 +303,359 @@
                         borderColor: lineColor,
                         backgroundColor: fillColor,
                         borderWidth: 2,
-                        tension: 0.08, // 30일선 흐름을 부드럽게 표현
+                        tension: 0.08, 
+                        pointRadius: pointRadius,
                         fill: true
                     }]
                 },
                 options: {
                     responsive: true,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: false } }
+                    scales: { 
+                        y: { beginAtZero: false },
+                        x: {
+                            ticks: {
+                                // 데이터가 많아질 때 하단 가로축 라벨이 겹치지 않도록 최대 개수를 자동으로 제한
+                                maxTicksLimit: 8
+                            }
+                        }
+                    }
                 }
             });
         }
 
         initRender();
-        // 30일 기본 세팅값으로 최초 조회 작동
+        fetchFinancialData(selectedRange);
+        setInterval(() => { fetchFinancialData(selectedRange); }, 60000);
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 금융 대시보드 (기간 확장 & 콤팩트 버전)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex justify-center">
+
+    <div class="w-full max-w-md bg-white min-h-screen shadow-lg flex flex-col justify-between p-3">
+        
+        <div>
+            <!-- 상단 헤더 -->
+            <header class="flex justify-between items-center mb-3">
+                <h1 class="text-lg font-bold text-gray-800">📊 실시간 금융 대시보드</h1>
+                <span id="network-status" class="text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded">시스템 가동</span>
+            </header>
+
+            <!-- 💵 원/달러 환율 영역 (박스 슬림화) -->
+            <div id="card-USD" onclick="changeChart('USD')" class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 flex flex-col mb-3 cursor-pointer hover:bg-blue-100 hover:scale-[1.01] transition-all duration-200">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
+                    <span id="usd-krw" class="text-base font-bold text-blue-900">0.00 원</span>
+                </div>
+                <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 대기 중...</div>
+            </div>
+
+            <!-- 📈 주식 시세 리스트 (간격 긴밀하게 축소) -->
+            <div class="space-y-2 mb-4" id="stock-list">
+                <!-- 초기에 빈 틀 구성 -->
+            </div>
+
+            <!-- 📉 통합 추이 그래프 영역 -->
+            <div class="bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-xs font-bold text-gray-700">
+                        📈 <span id="chart-title">QQQ</span> 추이
+                    </h3>
+                    <!-- 🛠️ 요청하신 기간 옵션 전면 배치 (기본값 30일) -->
+                    <select id="period-select" onchange="changePeriod(this.value)" class="text-[11px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600 focus:outline-none">
+                        <option value="7d">7일</option>
+                        <option value="14d">14일</option>
+                        <option value="30d" selected>30일</option>
+                        <option value="60d">60일</option>
+                        <option value="90d">90일</option>
+                        <option value="1y">1년</option>
+                        <option value="3y">3년</option>
+                        <option value="5y">5년</option>
+                    </select>
+                </div>
+                <canvas id="trendChart" class="w-full h-40"></canvas>
+            </div>
+        </div>
+
+        <!-- 하단 정보 -->
+        <footer class="mt-4 pt-3 border-t border-gray-100 text-center text-[11px] text-gray-400">
+            <p>💡 기간 메뉴에서 최대 5년 장기 추이까지 확인 가능합니다.</p>
+            <p class="mt-0.5">화면 갱신 시각: <span id="update-time">-</span></p>
+        </footer>
+
+    </div>
+
+    <script>
+        const tickers = {
+            'SKHY': 'SK하이닉스 (US)',
+            'QLD': '나스닥 100 X2',
+            'TQQQ': '나스닥 100 X3',
+            'SOXL': '반도체 X3',
+            'QQQ': '나스닥 100 지수',
+            'SPY': 'S&P 500 지수'
+        };
+
+        let trendChart = null;
+        let globalChartData = {}; 
+        let selectedTicker = 'QQQ'; 
+        let selectedRange = '30d'; // 💡 기본 거래일 30일 설정 유지
+
+        // 각 종목 박스(카드) 크기를 컴팩트하게 축소하는 렌더링 함수
+        function initRender() {
+            let initialHTML = '';
+            for (const [ticker, name] of Object.entries(tickers)) {
+                initialHTML += `
+                    <div id="card-${ticker}" onclick="changeChart('${ticker}')" class="bg-gray-50 border border-gray-200 rounded-xl p-2.5 flex justify-between items-center cursor-pointer hover:bg-gray-100 hover:scale-[1.01] transition-all duration-200">
+                        <div class="flex-1">
+                            <div class="text-sm font-bold text-gray-800">${ticker} <span class="text-[10px] font-normal text-gray-400">| ${name}</span></div>
+                            <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 동기화 대기 중...</div>
+                        </div>
+                        <div class="text-right">
+                            <div id="price-${ticker}" class="text-base font-extrabold text-gray-600">$0.00</div>
+                            <div id="change-${ticker}" class="text-[11px] font-bold text-gray-400 mt-0.5">- %</div>
+                            <div id="time-${ticker}" class="text-[9px] text-gray-400 mt-0.5">-</div>
+                        </div>
+                    </div>
+                `;
+            }
+            document.getElementById('stock-list').innerHTML = initialHTML;
+        }
+
+        async function fetchWithProxy(targetUrl) {
+            try {
+                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+                if (res.ok) return await res.json();
+            } catch (e) { console.log("1차 우회 실패, 백업 터널 작동..."); }
+
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+            const data = await res.json();
+            return JSON.parse(data.contents);
+        }
+
+        function formatMarketTime(timestamp) {
+            if (!timestamp) return '-';
+            const date = new Date(timestamp * 1000);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `(${month}/${day} ${hours}:${minutes})`;
+        }
+
+        async function fetchFinancialData(range = '30d') {
+            const now = new Date();
+            document.getElementById('update-time').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+
+            // 장기 데이터 조회 시 차트 가독성을 위해 인터벌 자동 조절 (1년 이상은 주 단위/월 단위 데이터로 최적화)
+            let interval = '1d';
+            if (range === '3y' || range === '5y') interval = '1wk';
+
+            // 1. 환율 정보 가져오기
+            try {
+                const usdTargetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/KRW=X?interval=${interval}&range=${range}`;
+                const usdData = await fetchWithProxy(usdTargetUrl);
+                
+                const usdMeta = usdData.chart.result[0].meta;
+                const usdIndicators = usdData.chart.result[0].indicators.quote[0];
+                const usdTimestamps = usdData.chart.result[0].timestamp;
+
+                const validUsdCloses = usdIndicators.close.filter(v => v !== null);
+                let currentUsd = usdMeta.regularMarketPrice || usdMeta.previousClose;
+                let usdChangeRate = 0;
+
+                if (validUsdCloses.length >= 2) {
+                    currentUsd = validUsdCloses[validUsdCloses.length - 1];
+                    const prevUsd = validUsdCloses[validUsdCloses.length - 2];
+                    usdChangeRate = ((currentUsd - prevUsd) / prevUsd) * 100;
+                }
+                
+                const usdIsUp = usdChangeRate >= 0;
+                const usdColor = usdIsUp ? 'text-red-500' : 'text-blue-500';
+                const usdSign = usdIsUp ? '▲' : '▼';
+
+                document.getElementById('usd-krw').innerHTML = `
+                    <span class="text-base font-bold text-blue-900">${currentUsd.toFixed(2)} 원</span>
+                    <span class="text-[11px] font-bold ${usdColor} ml-2">${usdSign} ${Math.abs(usdChangeRate).toFixed(2)}%</span>
+                `;
+                
+                const usdTimeStr = formatMarketTime(usdMeta.regularMarketTime);
+                document.getElementById('time-USD').innerText = `최종 거래 시각: ${usdTimeStr}`;
+
+                let usdLabels = [];
+                let usdPrices = [];
+                if (usdTimestamps) {
+                    usdTimestamps.forEach((ts, idx) => {
+                        const date = new Date(ts * 1000);
+                        // 기간이 1년 이상 길어지면 날짜 라벨 포맷 변경 (연도/월 표시)
+                        const label = (range === '3y' || range === '5y' || range === '1y') 
+                            ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
+                            : `${date.getMonth()+1}/${date.getDate()}`;
+                            
+                        if (idx === 0 || usdLabels[usdLabels.length - 1] !== label) {
+                            if (usdIndicators.close[idx] !== null) {
+                                usdLabels.push(label);
+                                usdPrices.push(usdIndicators.close[idx]);
+                            }
+                        }
+                    });
+                }
+                globalChartData['USD'] = { labels: usdLabels, prices: usdPrices, isCurrency: true };
+
+            } catch (e) {
+                console.error("환율 데이터 수집 실패:", e);
+            }
+
+            // 2. 주식 정보 가져오기
+            for (const [ticker, name] of Object.entries(tickers)) {
+                try {
+                    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
+                    const stockData = await fetchWithProxy(targetUrl);
+                    
+                    const meta = stockData.chart.result[0].meta;
+                    const indicators = stockData.chart.result[0].indicators.quote[0];
+                    const timestamps = stockData.chart.result[0].timestamp;
+
+                    const validCloses = indicators.close.filter(v => v !== null);
+                    
+                    let currentPrice = meta.regularMarketPrice || meta.previousClose;
+                    let changeRate = 0;
+
+                    if (validCloses.length >= 2) {
+                        currentPrice = validCloses[validCloses.length - 1];
+                        const lastValidPrevPrice = validCloses[validCloses.length - 2];
+                        changeRate = ((currentPrice - lastValidPrevPrice) / lastValidPrevPrice) * 100;
+                    } else {
+                        const prevPrice = meta.previousClose || 0;
+                        changeRate = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice) * 100 : 0;
+                    }
+
+                    const highs = indicators.high.filter(v => v !== null);
+                    const lows = indicators.low.filter(v => v !== null);
+                    const highPrice = highs.length ? Math.max(...highs) : currentPrice;
+                    const lowPrice = lows.length ? Math.min(...lows) : currentPrice;
+
+                    const isUp = changeRate >= 0;
+                    const colorClass = isUp ? 'text-red-500' : 'text-blue-500';
+                    const sign = isUp ? '▲' : '▼';
+
+                    // 컴팩트 UI 텍스트 출력 적용
+                    document.getElementById(`price-${ticker}`).innerText = `$${currentPrice.toFixed(2)}`;
+                    document.getElementById(`change-${ticker}`).innerText = `${sign} ${Math.abs(changeRate).toFixed(2)}%`;
+                    document.getElementById(`change-${ticker}`).className = `text-[11px] font-bold ${colorClass} mt-0.5`;
+                    document.getElementById(`range-${ticker}`).innerText = `고: $${highPrice.toFixed(2)} / 저: $${lowPrice.toFixed(2)}`;
+                    
+                    const stockTimeStr = formatMarketTime(meta.regularMarketTime);
+                    document.getElementById(`time-${ticker}`).innerText = stockTimeStr;
+
+                    // 차트 라벨 생성
+                    let labels = [];
+                    let prices = [];
+                    if (timestamps) {
+                        timestamps.forEach((ts, idx) => {
+                            const date = new Date(ts * 1000);
+                            const label = (range === '3y' || range === '5y' || range === '1y') 
+                                ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
+                                : `${date.getMonth()+1}/${date.getDate()}`;
+
+                            if (idx === 0 || labels[labels.length - 1] !== label) {
+                                if (indicators.close[idx] !== null) {
+                                    labels.push(label);
+                                    prices.push(indicators.close[idx]);
+                                }
+                            }
+                        });
+                    }
+                    globalChartData[ticker] = { labels, prices, isCurrency: false };
+
+                } catch (error) {
+                    console.error(`${ticker} 통신 실패:`, error);
+                }
+            }
+
+            // 차트 재생성
+            if (globalChartData[selectedTicker]) {
+                updateChart(globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
+            }
+        }
+
+        function changeChart(ticker) {
+            selectedTicker = ticker; 
+            let titleTarget = ticker;
+            if (ticker === 'USD') titleTarget = '원/달러 환율(KRW)';
+            if (ticker === 'SKHY') titleTarget = 'SK하이닉스 (US)';
+            
+            document.getElementById('chart-title').innerText = titleTarget; 
+            
+            if (globalChartData[ticker]) {
+                updateChart(globalChartData[ticker].labels, globalChartData[ticker].prices);
+            }
+        }
+
+        async function changePeriod(range) {
+            selectedRange = range; 
+            document.getElementById('network-status').innerText = "기간 갱신 중";
+            document.getElementById('network-status').className = "text-[11px] text-amber-600 bg-amber-50 font-semibold px-2 py-0.5 rounded";
+            await fetchFinancialData(selectedRange);
+            document.getElementById('network-status').innerText = "시스템 가동";
+            document.getElementById('network-status').className = "text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded";
+        }
+
+        function updateChart(labels, data) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) {
+                trendChart.destroy();
+            }
+
+            const isCurrency = globalChartData[selectedTicker]?.isCurrency;
+            let labelText = `${selectedTicker} 종가 ($)`;
+            if (isCurrency) labelText = "환율 (원)";
+
+            const lineColor = isCurrency ? '#3b82f6' : '#10b981'; 
+            const fillColor = isCurrency ? 'rgba(59, 130, 246, 0.05)' : 'rgba(16, 185, 129, 0.05)';
+
+            // 데이터 양에 따라 점(Point)의 크기를 제어하여 장기 데이터 표기 시 차트가 지저분해지지 않도록 보완
+            const pointRadius = (selectedRange === '3y' || selectedRange === '5y') ? 0 : 1.5;
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: labelText,
+                        data: data,
+                        borderColor: lineColor,
+                        backgroundColor: fillColor,
+                        borderWidth: 2,
+                        tension: 0.08, 
+                        pointRadius: pointRadius,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        y: { beginAtZero: false },
+                        x: {
+                            ticks: {
+                                // 데이터가 많아질 때 하단 가로축 라벨이 겹치지 않도록 최대 개수를 자동으로 제한
+                                maxTicksLimit: 8
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        initRender();
         fetchFinancialData(selectedRange);
         setInterval(() => { fetchFinancialData(selectedRange); }, 60000);
     </script>
