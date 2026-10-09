@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>실시간 금융 대시보드 (즉시 반영 버전)</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>실시간 금융 대시보드 (복구 완료 버전)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex justify-center">
@@ -23,16 +23,15 @@
                 <div onclick="toggleChart('USD')" class="p-2.5 flex flex-col cursor-pointer hover:bg-blue-100/50 active:scale-[0.99] transition-all duration-150">
                     <div class="flex justify-between items-center">
                         <span class="text-sm font-semibold text-blue-800">💵 원/달러 환율 (USD/KRW)</span>
-                        <span id="usd-krw" class="text-base font-bold text-blue-900">0.00 원</span>
+                        <span id="usd-krw" class="text-base font-bold text-blue-900">조회 중...</span>
                     </div>
-                    <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 대기 중...</div>
+                    <div id="time-USD" class="text-[9px] text-blue-400 text-right mt-0.5">데이터 동기화 중...</div>
                 </div>
                 
                 <!-- 📉 환율 차트 삽입부 -->
                 <div id="chart-area-USD" class="hidden bg-white border-t border-blue-200 p-3">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-xs font-bold text-blue-800">📈 원/달러 환율 추이</span>
-                        <!-- 💡 changePeriod 함수에 이번 클릭 요소를 전달하도록 변경 -->
                         <select onchange="changePeriod(this.value, this)" class="period-select text-[10px] bg-gray-50 border border-gray-300 rounded px-1.5 py-0.5 font-semibold text-gray-600 focus:outline-none">
                             <option value="7d">7일</option>
                             <option value="14d">14일</option>
@@ -58,7 +57,7 @@
 
         <!-- 하단 정보 -->
         <footer class="mt-4 pt-3 border-t border-gray-100 text-center text-[11px] text-gray-400">
-            <p>💡 기간을 누르면 확인 버튼 없이 그래프가 즉시 새로 그려집니다.</p>
+            <p>💡 기간을 누르면 그래프가 즉시 새로 그려집니다.</p>
             <p class="mt-0.5">화면 갱신 시각: <span id="update-time">-</span></p>
         </footer>
 
@@ -87,7 +86,7 @@
                         <div onclick="toggleChart('${ticker}')" class="p-2.5 flex justify-between items-center cursor-pointer hover:bg-gray-100 active:scale-[0.99] transition-all duration-150">
                             <div class="flex-1 w-full">
                                 <div class="text-sm font-bold text-gray-800">${ticker} <span class="text-[10px] font-normal text-gray-400">| ${name}</span></div>
-                                <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 동기화 대기 중...</div>
+                                <div id="range-${ticker}" class="text-[10px] text-gray-400 mt-0.5">데이터 연결 중...</div>
                             </div>
                             <div class="text-right">
                                 <div id="price-${ticker}" class="text-base font-extrabold text-gray-600">$0.00</div>
@@ -121,15 +120,34 @@
             document.getElementById('stock-list').innerHTML = initialHTML;
         }
 
+        // 다중 우회 프록시 파이프라인 (안정성 강화)
         async function fetchWithProxy(targetUrl) {
-            try {
-                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
-                if (res.ok) return await res.json();
-            } catch (e) { console.log("1차 우회 실패, 백업 터널 작동..."); }
+            const proxies = [
+                url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+            ];
 
-            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
-            const data = await res.json();
-            return JSON.parse(data.contents);
+            for (const proxyFn of proxies) {
+                try {
+                    const proxyUrl = proxyFn(targetUrl);
+                    const res = await fetch(proxyUrl);
+                    if (!res.ok) continue;
+
+                    if (proxyUrl.includes('allorigins')) {
+                        const data = await res.json();
+                        if (data && data.contents) {
+                            return JSON.parse(data.contents);
+                        }
+                    } else {
+                        return await res.json();
+                    }
+                } catch (e) {
+                    // 차선책 프록시 시도
+                    continue;
+                }
+            }
+            throw new Error("모든 우회 서버 응답 실패");
         }
 
         function formatMarketTime(timestamp) {
@@ -158,7 +176,7 @@
                 const usdIndicators = usdData.chart.result[0].indicators.quote[0];
                 const usdTimestamps = usdData.chart.result[0].timestamp;
 
-                const validUsdCloses = usdIndicators.close.filter(v => v !== null);
+                const validUsdCloses = usdIndicators.close.filter(v => v !== null && v !== undefined);
                 let currentUsd = usdMeta.regularMarketPrice || usdMeta.previousClose;
                 let usdChangeRate = 0;
 
@@ -173,210 +191,4 @@
                 const usdSign = usdIsUp ? '▲' : '▼';
 
                 document.getElementById('usd-krw').innerHTML = `
-                    <span class="text-base font-bold text-blue-900">${currentUsd.toFixed(2)} 원</span>
-                    <span class="text-[11px] font-bold ${usdColor} ml-2">${usdSign} ${Math.abs(usdChangeRate).toFixed(2)}%</span>
-                `;
-                
-                const usdTimeStr = formatMarketTime(usdMeta.regularMarketTime);
-                document.getElementById('time-USD').innerText = `최종 거래 시각: ${usdTimeStr}`;
-
-                let usdLabels = [];
-                let usdPrices = [];
-                if (usdTimestamps) {
-                    usdTimestamps.forEach((ts, idx) => {
-                        const date = new Date(ts * 1000);
-                        const label = (range === '3y' || range === '5y' || range === '1y') 
-                            ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
-                            : `${date.getMonth()+1}/${date.getDate()}`;
-                            
-                        if (idx === 0 || usdLabels[usdLabels.length - 1] !== label) {
-                            if (usdIndicators.close[idx] !== null) {
-                                usdLabels.push(label);
-                                usdPrices.push(usdIndicators.close[idx]);
-                            }
-                        }
-                    });
-                }
-                globalChartData['USD'] = { labels: usdLabels, prices: usdPrices, isCurrency: true };
-
-            } catch (e) {
-                console.error("환율 데이터 수집 실패:", e);
-            }
-
-            // 2. 주식 정보 가져오기
-            for (const [ticker, name] of Object.entries(tickers)) {
-                try {
-                    const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=${range}`;
-                    const stockData = await fetchWithProxy(targetUrl);
-                    
-                    const meta = stockData.chart.result[0].meta;
-                    const indicators = stockData.chart.result[0].indicators.quote[0];
-                    const timestamps = stockData.chart.result[0].timestamp;
-
-                    const validCloses = indicators.close.filter(v => v !== null);
-                    
-                    let currentPrice = meta.regularMarketPrice || meta.previousClose;
-                    let changeRate = 0;
-
-                    if (validCloses.length >= 2) {
-                        currentPrice = validCloses[validCloses.length - 1];
-                        const lastValidPrevPrice = validCloses[validCloses.length - 2];
-                        changeRate = ((currentPrice - lastValidPrevPrice) / lastValidPrevPrice) * 100;
-                    } else {
-                        const prevPrice = meta.previousClose || 0;
-                        changeRate = prevPrice !== 0 ? ((currentPrice - prevPrice) / prevPrice) * 100 : 0;
-                    }
-
-                    const highs = indicators.high.filter(v => v !== null);
-                    const lows = indicators.low.filter(v => v !== null);
-                    const highPrice = highs.length ? Math.max(...highs) : currentPrice;
-                    const lowPrice = lows.length ? Math.min(...lows) : currentPrice;
-
-                    const isUp = changeRate >= 0;
-                    const colorClass = isUp ? 'text-red-500' : 'text-blue-500';
-                    const sign = isUp ? '▲' : '▼';
-
-                    document.getElementById(`price-${ticker}`).innerText = `$${currentPrice.toFixed(2)}`;
-                    document.getElementById(`change-${ticker}`).innerText = `${sign} ${Math.abs(changeRate).toFixed(2)}%`;
-                    document.getElementById(`change-${ticker}`).className = `text-[11px] font-bold ${colorClass} mt-0.5`;
-                    document.getElementById(`range-${ticker}`).innerText = `고: $${highPrice.toFixed(2)} / 저: $${lowPrice.toFixed(2)}`;
-                    
-                    const stockTimeStr = formatMarketTime(meta.regularMarketTime);
-                    document.getElementById(`time-${ticker}`).innerText = stockTimeStr;
-
-                    let labels = [];
-                    let prices = [];
-                    if (timestamps) {
-                        timestamps.forEach((ts, idx) => {
-                            const date = new Date(ts * 1000);
-                            const label = (range === '3y' || range === '5y' || range === '1y') 
-                                ? `${String(date.getFullYear()).slice(-2)}/${date.getMonth()+1}`
-                                : `${date.getMonth()+1}/${date.getDate()}`;
-
-                            if (idx === 0 || labels[labels.length - 1] !== label) {
-                                if (indicators.close[idx] !== null) {
-                                    labels.push(label);
-                                    prices.push(indicators.close[idx]);
-                                }
-                            }
-                        });
-                    }
-                    globalChartData[ticker] = { labels, prices, isCurrency: false };
-
-                } catch (error) {
-                    console.error(`${ticker} 통신 실패:`, error);
-                }
-            }
-
-            // 활성화된 차트 재렌더링
-            if (globalChartData[selectedTicker]) {
-                const area = document.getElementById(`chart-area-${selectedTicker}`);
-                if (area && !area.classList.contains('hidden')) {
-                    drawChart(selectedTicker, globalChartData[selectedTicker].labels, globalChartData[selectedTicker].prices);
-                }
-            }
-        }
-
-        function toggleChart(ticker) {
-            const allTickers = ['USD', ...Object.keys(tickers)];
-            
-            allTickers.forEach(t => {
-                const area = document.getElementById(`chart-area-${t}`);
-                if (t === ticker) {
-                    if (area.classList.contains('hidden')) {
-                        area.classList.remove('hidden');
-                        selectedTicker = ticker;
-                        const selectEl = area.querySelector('.period-select');
-                        if (selectEl) selectEl.value = selectedRange;
-                        
-                        if (globalChartData[ticker]) {
-                            drawChart(ticker, globalChartData[ticker].labels, globalChartData[ticker].prices);
-                        }
-                    } else {
-                        area.classList.add('hidden');
-                    }
-                } else {
-                    area.classList.add('hidden');
-                }
-            });
-        }
-
-        function drawChart(ticker, labels, data) {
-            const ctx = document.getElementById(`chart-canvas-${ticker}`).getContext('2d');
-            if (trendChart) {
-                trendChart.destroy();
-            }
-
-            const isCurrency = globalChartData[ticker]?.isCurrency;
-            let labelText = `${ticker} 종가 ($)`;
-            if (isCurrency) labelText = "환율 (원)";
-
-            const lineColor = isCurrency ? '#3b82f6' : '#10b981'; 
-            const fillColor = isCurrency ? 'rgba(59, 130, 246, 0.05)' : 'rgba(16, 185, 129, 0.05)';
-            const pointRadius = (selectedRange === '3y' || selectedRange === '5y') ? 0 : 1.5;
-
-            trendChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: labelText,
-                        data: data,
-                        borderColor: lineColor,
-                        backgroundColor: fillColor,
-                        borderWidth: 2,
-                        tension: 0.08, 
-                        pointRadius: pointRadius,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { 
-                        y: { beginAtZero: false },
-                        x: {
-                            ticks: {
-                                maxTicksLimit: 8
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 💡 중요 수정: 기간 선택 시 작동하는 핵심 비동기 함수 개조
-        async function changePeriod(range, element) {
-            selectedRange = range; 
-            
-            // 💡 [핵심] 모바일 환경에서 선택 직후 선택창의 포커스를 강제로 해제(.blur())하여
-            // 키보드나 확인창 유도 패널이 뜨지 않고 그 자리에서 화면이 바로 닫히며 갱신되도록 처리합니다.
-            if (element) {
-                element.blur();
-            }
-
-            document.getElementById('network-status').innerText = "기간 갱신 중";
-            document.getElementById('network-status').className = "text-[11px] text-amber-600 bg-amber-50 font-semibold px-2 py-0.5 rounded";
-            
-            // 새 데이터 호출
-            await fetchFinancialData(selectedRange);
-            
-            // 모든 선택창(Select 박스)들의 선택 상태를 현재 고른 기간값으로 동기화합니다.
-            document.querySelectorAll('.period-select').forEach(sel => {
-                sel.value = selectedRange;
-            });
-            
-            document.getElementById('network-status').innerText = "시스템 가동";
-            document.getElementById('network-status').className = "text-[11px] text-emerald-600 bg-emerald-50 font-semibold px-2 py-0.5 rounded";
-        }
-
-        initRender();
-        fetchFinancialData(selectedRange).then(() => {
-            toggleChart('QQQ');
-        });
-
-        setInterval(() => { fetchFinancialData(selectedRange); }, 60000);
-    </script>
-</body>
-</html>
+                    <span class="text-base font-
